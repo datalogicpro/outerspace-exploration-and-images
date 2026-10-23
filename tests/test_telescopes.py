@@ -1,7 +1,7 @@
 from telescopes import (
     ANY,
     ESA_WEBB,
-    NASA_TELESCOPES,
+    NASA_LIBRARY,
     OBJECT_TYPES,
     TELESCOPES,
     build_query,
@@ -19,14 +19,14 @@ def test_telescope_named() -> None:
 def test_webb_comes_from_esa_webb_not_nasa() -> None:
     webb = telescope_named("James Webb Space Telescope")
     assert webb is not None and webb.source == ESA_WEBB
-    assert webb not in NASA_TELESCOPES
-    assert len(NASA_TELESCOPES) == len(TELESCOPES) - 1
+    others = [t for t in TELESCOPES if t is not webb]
+    assert all(t.source == NASA_LIBRARY for t in others)
 
 
 def test_types_for_leaves_out_skipped_types() -> None:
     juno = telescope_named("Juno")
     assert juno is not None
-    assert types_for(juno) == [ANY, *(t for t in OBJECT_TYPES if t != "The Sun")]
+    assert types_for(juno) == [ANY, "Planets", "Moons"]
     hubble = telescope_named("Hubble Space Telescope")
     assert hubble is not None
     assert types_for(hubble) == [ANY, *OBJECT_TYPES]

@@ -123,25 +123,27 @@ def app_url(stand_in: str) -> Iterator[str]:
 
 def test_view_a_picture_large(page: Page, app_url: str) -> None:
     page.goto(app_url)
-    explore = page.get_by_role("tabpanel", name="Explore")
-    expect(explore.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
-    explore.get_by_role("button", name="View").first.click()
+    pictures = page.get_by_role("tabpanel", name="Space telescopes and cameras")
+    expect(pictures.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
+    pictures.get_by_role("button", name="View").first.click()
     expect(
-        explore.get_by_role("heading", name="Most Detailed Image of the Crab Nebula")
+        pictures.get_by_role("heading", name="Most Detailed Image of the Crab Nebula")
     ).to_be_visible()
-    expect(explore.get_by_text("See every size on NASA's site")).to_be_visible()
+    expect(pictures.get_by_text("See every size on NASA's site")).to_be_visible()
 
 
 def test_webb_pictures(page: Page, app_url: str) -> None:
     page.goto(app_url)
-    page.get_by_role("tab", name="Telescopes and cameras").click()
-    scopes = page.get_by_role("tabpanel", name="Telescopes and cameras")
-    scopes.get_by_role("combobox", name="Telescope or camera").click()
+    pictures = page.get_by_role("tabpanel", name="Space telescopes and cameras")
+    # Wait for the first search to finish, so the page is ready for clicks
+    expect(pictures.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
+    pictures.get_by_role("combobox", name="Telescope or camera").click()
     page.get_by_role("option", name="James Webb Space Telescope").click()
-    expect(scopes.get_by_text("Stars brewing in a nebulous cauldron")).to_be_visible(
-        timeout=30_000
-    )
-    expect(scopes.get_by_text("Credit: ESA/Webb, NASA & CSA").first).to_be_visible()
+    expect(pictures.get_by_text("No Webb pictures match")).to_be_visible(timeout=30_000)
+    pictures.get_by_role("combobox", name="Type").click()
+    page.get_by_role("option", name="Any", exact=True).click()
+    expect(pictures.get_by_text("Stars brewing in a nebulous cauldron")).to_be_visible()
+    expect(pictures.get_by_text("Credit: ESA/Webb, NASA & CSA").first).to_be_visible()
 
 
 def test_spaceflights(page: Page, app_url: str) -> None:
