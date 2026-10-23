@@ -123,30 +123,35 @@ def app_url(stand_in: str) -> Iterator[str]:
 
 def test_view_a_picture_large(page: Page, app_url: str) -> None:
     page.goto(app_url)
-    expect(page.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
-    page.get_by_role("button", name="View").first.click()
+    explore = page.get_by_role("tabpanel", name="Explore")
+    expect(explore.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
+    explore.get_by_role("button", name="View").first.click()
     expect(
-        page.get_by_role("heading", name="Most Detailed Image of the Crab Nebula")
+        explore.get_by_role("heading", name="Most Detailed Image of the Crab Nebula")
     ).to_be_visible()
-    expect(page.get_by_text("See every size on NASA's site")).to_be_visible()
+    expect(explore.get_by_text("See every size on NASA's site")).to_be_visible()
 
 
 def test_webb_pictures(page: Page, app_url: str) -> None:
     page.goto(app_url)
     page.get_by_role("tab", name="Telescopes and cameras").click()
-    page.get_by_role("combobox", name="Telescope or camera").click()
+    scopes = page.get_by_role("tabpanel", name="Telescopes and cameras")
+    scopes.get_by_role("combobox", name="Telescope or camera").click()
     page.get_by_role("option", name="James Webb Space Telescope").click()
-    expect(page.get_by_text("Stars brewing in a nebulous cauldron")).to_be_visible(
+    expect(scopes.get_by_text("Stars brewing in a nebulous cauldron")).to_be_visible(
         timeout=30_000
     )
-    expect(page.get_by_text("Credit: ESA/Webb, NASA & CSA").first).to_be_visible()
+    expect(scopes.get_by_text("Credit: ESA/Webb, NASA & CSA").first).to_be_visible()
 
 
 def test_spaceflights(page: Page, app_url: str) -> None:
     page.goto(app_url)
     page.get_by_role("tab", name="Spaceflights").click()
+    flights = page.get_by_role("tabpanel", name="Spaceflights")
     expect(
-        page.get_by_role("heading", name="Falcon 9 Block 5 | Starlink Group 15-15")
+        flights.get_by_role("heading", name="Falcon 9 Block 5 | Starlink Group 15-15")
     ).to_be_visible(timeout=30_000)
-    page.get_by_text("Past", exact=True).click()
-    expect(page.get_by_role("heading", name="Ceres-1S | Xiguang-4 01")).to_be_visible()
+    flights.get_by_text("Past", exact=True).click()
+    expect(
+        flights.get_by_role("heading", name="Ceres-1S | Xiguang-4 01")
+    ).to_be_visible()
