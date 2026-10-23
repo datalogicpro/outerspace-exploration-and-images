@@ -22,6 +22,7 @@ import http_client
 APP = str(Path(__file__).parent.parent / "app.py")
 WEBB = "James Webb Space Telescope"
 EMPTY_FEED = b"<rss><channel></channel></rss>"
+NO_WEBB_MATCH = "No Webb pictures match. Try other words, or set Type to Any."
 
 
 @pytest.fixture(autouse=True)
@@ -52,14 +53,13 @@ def infos(app: AppTest) -> list[str]:
     return [info.value for info in app.info]
 
 
-def test_page_opens_with_three_tabs(
+def test_page_opens_with_two_tabs(
     monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
 ) -> None:
     app = run_app(monkeypatch, routes)
     assert app.title[0].value == "Outer Space Exploration and Images"
     assert [tab.label for tab in app.tabs] == [
-        "Explore",
-        "Telescopes and cameras",
+        "Space telescopes and cameras",
         "Spaceflights",
     ]
     assert any("NASA and ESA/Webb don't endorse" in text for text in captions(app))
@@ -89,23 +89,39 @@ def test_explore_without_a_date_or_description(
     assert "**Credit:** NASA" in [md.value for md in app.markdown]
 
 
-def test_explore_page_two(
+def test_explore_next_and_previous_page(
     monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
 ) -> None:
     app = run_app(monkeypatch, routes)
     app.text_input(key="explore_words").input("Saturn").run()
-    page = app.number_input(key="explore_page_Saturn nebula")
-    assert page.label == "Page (of 5)"
-    page.set_value(2).run()
-    assert not app.exception
+    pager = "explore_page_Saturn nebula"
+    assert "**Page 1 of 5**" in [md.value for md in app.markdown]
+    assert app.button(key=f"{pager}_back").disabled
+    app.button(key=f"{pager}_next").click().run()
+    assert "**Page 2 of 5**" in [md.value for md in app.markdown]
+    assert not app.button(key=f"{pager}_back").disabled
     assert "100 pictures found. Click View to see one large." in captions(app)
+    app.button(key=f"{pager}_back").click().run()
+    assert "**Page 1 of 5**" in [md.value for md in app.markdown]
+
+
+def test_explore_page_with_no_space_pictures(
+    monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
+) -> None:
+    reply = read_json("images.json")
+    for result in reply["collection"]["items"]:
+        result["data"][0]["photographer"] = "NASA/Someone"
+    routes[NASA_SEARCH] = to_bytes(reply)
+    app = run_app(monkeypatch, routes)
+    assert "No space pictures on this page. Try the next page." in infos(app)
+    assert "explore_PIA03606" not in [button.key for button in app.button]
 
 
 def test_explore_with_nothing_chosen(
     monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
 ) -> None:
     app = run_app(monkeypatch, routes)
-    app.selectbox(key="explore_type").set_value("Any").run()
+    app.selectbox(key="explore_type_Any").set_value("Any").run()
     assert "Type a name, or pick a type or a telescope." in infos(app)
 
 
@@ -117,13 +133,6 @@ def test_explore_no_pictures_found(
     assert "No pictures found. Try other words, or a different choice." in infos(app)
 
 
-def test_explore_leaves_webb_out(
-    monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
-) -> None:
-    app = run_app(monkeypatch, routes)
-    assert WEBB not in app.selectbox(key="explore_telescope").options
-
-
 def test_source_failure_shows_an_error(
     monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
 ) -> None:
@@ -132,35 +141,61 @@ def test_source_failure_shows_an_error(
     assert any("NASA's image library didn't answer" in e.value for e in app.error)
 
 
-def test_telescope_tab_types_follow_the_telescope(
+def test_types_follow_the_telescope(
     monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
 ) -> None:
     app = run_app(monkeypatch, routes)
-    assert "Comets" in app.selectbox(key="scope_type_Hubble Space Telescope").options
-    app.selectbox(key="scope_name").set_value("Chandra X-ray Observatory").run()
-    types = app.selectbox(key="scope_type_Chandra X-ray Observatory")
+    assert "Comets" in app.selectbox(key="explore_type_Any").options
+    chandra = "Chandra X-ray Observatory"
+    app.selectbox(key="explore_telescope").set_value(chandra).run()
+    types = app.selectbox(key=f"explore_type_{chandra}")
     assert "Comets" not in types.options
+    assert any("**What it sees:** X-rays" in md.value for md in app.markdown)
     types.set_value("Galaxies").run()
     assert not app.exception
 
 
-def test_telescope_tab_webb_pictures(
+def test_type_starts_on_any_when_the_telescope_has_no_nebulae(
     monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
 ) -> None:
     app = run_app(monkeypatch, routes)
-    app.selectbox(key="scope_name").set_value(WEBB).run()
+    app.selectbox(key="explore_telescope").set_value("Cassini").run()
+    types = app.selectbox(key="explore_type_Cassini")
+    assert "Nebulae" not in types.options
+    assert types.value == "Any"
+
+
+def test_webb_pictures(
+    monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
+) -> None:
+    app = run_app(monkeypatch, routes)
+    app.selectbox(key="explore_telescope").set_value(WEBB).run()
+    assert NO_WEBB_MATCH in infos(app)
+    app.selectbox(key=f"explore_type_{WEBB}").set_value("Any").run()
     assert any("Webb's newest pictures of space" in text for text in captions(app))
     app.button(key="webb_potm2610a").click().run()
     assert "Stars brewing in a nebulous cauldron" in subheaders(app)
     assert "webb_weic2618a" not in [button.key for button in app.button]
 
 
-def test_telescope_tab_webb_with_no_pictures(
+def test_webb_pictures_match_the_search_words(
+    monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
+) -> None:
+    app = run_app(monkeypatch, routes)
+    app.selectbox(key="explore_telescope").set_value(WEBB).run()
+    app.selectbox(key=f"explore_type_{WEBB}").set_value("Any").run()
+    app.text_input(key="explore_words").input("cauldron").run()
+    assert "webb_potm2610a" in [button.key for button in app.button]
+    app.text_input(key="explore_words").input("saturn").run()
+    assert NO_WEBB_MATCH in infos(app)
+
+
+def test_webb_with_no_pictures(
     monkeypatch: pytest.MonkeyPatch, routes: dict[str, Reply]
 ) -> None:
     routes[WEBB_FEED] = EMPTY_FEED
     app = run_app(monkeypatch, routes)
-    app.selectbox(key="scope_name").set_value(WEBB).run()
+    app.selectbox(key="explore_telescope").set_value(WEBB).run()
     assert "ESA/Webb has no pictures to show right now. Try again later." in infos(app)
 
 

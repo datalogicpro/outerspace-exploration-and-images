@@ -10,8 +10,8 @@ NASA's replies are uneven, so each record evens them out:
   permission doesn't cover them
 - pictures that aren't of space are left out: ones taken by a photographer
   on the ground, ones from Kennedy Space Center (rockets and spacecraft
-  being prepared), and drawings, charts, tests, and events, found by words
-  in their titles
+  being prepared), drawings, charts, tests, people, and events found by
+  words in their titles, and the titles listed in blocked_titles.txt
 """
 
 import html
@@ -19,6 +19,8 @@ import math
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
+from functools import cache
+from pathlib import Path
 from typing import Any
 
 DEFAULT_CREDIT = "NASA"
@@ -37,8 +39,11 @@ COPYRIGHT = re.compile(r"©|copyright", re.IGNORECASE)
 # spacecraft being prepared on the ground
 GROUND_ID_PREFIXES = ("KSC",)
 
-# Title words that mean a drawing, chart, test, or event, not a picture of
-# space
+# Pictures checked by hand and left out by their exact title
+BLOCKED_TITLES_FILE = Path(__file__).parent / "blocked_titles.txt"
+
+# Title words that mean a drawing, chart, test, people, or an event, not a
+# picture of space
 NOT_SPACE_WORDS = (
     "concept",
     "illustration",
@@ -55,6 +60,12 @@ NOT_SPACE_WORDS = (
     "sample tube",
     "parking spot",
     "rockets?",
+    "managers?",
+    "teams?",
+    "engineers?",
+    "scientists?",
+    r"celebrat\w*",
+    "end of mission",
 )
 NOT_SPACE_TITLE = re.compile(
     r"\b(?:" + "|".join(NOT_SPACE_WORDS) + r")\b", re.IGNORECASE
@@ -138,9 +149,20 @@ def taken_on(value: str | None) -> date | None:
     return datetime.fromisoformat(value).date()
 
 
+@cache
+def blocked_titles() -> frozenset[str]:
+    """The titles in blocked_titles.txt, in lowercase. The file is read once."""
+    lines = BLOCKED_TITLES_FILE.read_text(encoding="utf-8").splitlines()
+    return frozenset(
+        line.strip().casefold()
+        for line in lines
+        if line.strip() and not line.startswith("#")
+    )
+
+
 def is_space_picture(data: dict[str, Any]) -> bool:
-    """False for pictures taken on the ground, and for drawings, charts,
-    tests, and events.
+    """False for pictures taken on the ground, for drawings, charts, tests,
+    people, and events, and for the titles in blocked_titles.txt.
 
     NASA fills in "photographer" for pictures a person took with a camera,
     like at an event.
@@ -149,7 +171,23 @@ def is_space_picture(data: dict[str, Any]) -> bool:
         return False
     if str(data.get("nasa_id", "")).startswith(GROUND_ID_PREFIXES):
         return False
-    return not NOT_SPACE_TITLE.search(str(data.get("title") or ""))
+    title = clean_text(str(data.get("title") or ""))
+    if title.casefold() in blocked_titles():
+        return False
+    return not NOT_SPACE_TITLE.search(title)
+
+
+def matching(photos: list[Photo], query: str) -> list[Photo]:
+    """The pictures whose title or description has every word of the search,
+    in any capitals. An empty search keeps them all."""
+    words = query.casefold().split()
+    return [
+        photo
+        for photo in photos
+        if all(
+            word in f"{photo.title} {photo.description}".casefold() for word in words
+        )
+    ]
 
 
 def parse_photo(item: dict[str, Any]) -> Photo | None:

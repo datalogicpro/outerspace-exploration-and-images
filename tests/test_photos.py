@@ -1,15 +1,20 @@
+from collections.abc import Iterator
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import pytest
 from conftest import read_json
 
+import photos
 from photos import (
     DEFAULT_CREDIT,
     MAX_PAGES,
+    blocked_titles,
     clean_text,
     find_credit,
     is_space_picture,
+    matching,
     page_count,
     parse_photo,
     parse_photos,
@@ -17,6 +22,14 @@ from photos import (
     taken_on,
     total_hits,
 )
+
+
+@pytest.fixture
+def fresh_blocked_titles() -> Iterator[None]:
+    """Reads blocked_titles.txt again, before and after the test."""
+    blocked_titles.cache_clear()
+    yield
+    blocked_titles.cache_clear()
 
 
 def item(
@@ -30,13 +43,13 @@ def item(
 
 
 def test_parse_photos_from_a_real_reply() -> None:
-    photos = parse_photos(read_json("images.json"))
-    assert [photo.id for photo in photos] == [
+    pictures = parse_photos(read_json("images.json"))
+    assert [photo.id for photo in pictures] == [
         "PIA03606",
         "GSFC_20171208_Archive_e000273",
         "7890338",
     ]
-    crab = photos[0]
+    crab = pictures[0]
     assert crab.title == "Most Detailed Image of the Crab Nebula"
     assert crab.credit == "NASA/ESA/JPL/Arizona State Univ."
     assert crab.page_url == "https://images.nasa.gov/details/PIA03606"
@@ -99,6 +112,8 @@ def test_no_data_left_out() -> None:
         "Environmental Plot at Jezero",
         "Apollo 40th Newseum Panel Discussion",
         "Computer-Design Drawing for NASA 2020 Mars Rover",
+        "Mission Team Celebrates a Safe Landing",
+        "Webb Engineers at Work",
     ],
 )
 def test_not_space_titles(title: str) -> None:
@@ -110,6 +125,38 @@ def test_not_space_titles(title: str) -> None:
 )
 def test_space_titles(title: str) -> None:
     assert is_space_picture({"title": title})
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "History of Hubble Space Telescope (HST)",
+        "space shuttle projects",
+        "  STS125-S-001  ",
+        "<b>Space Science</b>",
+    ],
+)
+def test_blocked_titles_left_out(title: str) -> None:
+    assert not is_space_picture({"title": title})
+
+
+def test_blocked_titles_file_skips_notes_and_blank_lines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fresh_blocked_titles: None
+) -> None:
+    blocked = tmp_path / "blocked_titles.txt"
+    blocked.write_text("# A note\n\n  Rover Selfie  \nSpace Science\n", "utf-8")
+    monkeypatch.setattr(photos, "BLOCKED_TITLES_FILE", blocked)
+    assert blocked_titles() == {"rover selfie", "space science"}
+
+
+def test_matching_needs_every_word() -> None:
+    pictures = parse_photos(read_json("images.json"))
+    assert [photo.id for photo in matching(pictures, "crab HUBBLE")] == [
+        "PIA03606",
+        "GSFC_20171208_Archive_e000273",
+    ]
+    assert matching(pictures, "crab saturn") == []
+    assert matching(pictures, "") == pictures
 
 
 def test_long_credit_line_is_not_a_credit() -> None:

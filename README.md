@@ -9,15 +9,14 @@ A dashboard of space pictures from NASA and ESA/Webb, by object and by the teles
 
 ## What it shows
 
-The page has three tabs:
+The page has two tabs:
 
 | Tab | What's in it |
 |---|---|
-| Explore | Search NASA's pictures by name, type of object, and telescope or camera |
-| Telescopes and cameras | Where each telescope or camera is, what light it sees, and its pictures |
+| Space telescopes and cameras | Space pictures by telescope or camera, type of object, and search words. Picking a telescope also shows where it is and what light it sees. |
 | Spaceflights | Planned and past rocket launches from around the world, with details for each |
 
-On the picture tabs, click **View** under a picture to see it large, with its date, credit, description, and a link to every size on its site.
+Click **View** under a picture to see it large, with its date, credit, description, and a link to every size on its site.
 
 ## The telescopes and cameras
 
@@ -35,8 +34,9 @@ On the picture tabs, click **View** under a picture to see it large, with its da
 
 ## Which pictures are shown
 
-- **Pictures of space only.** NASA's library also holds pictures of hardware, events, and drawings. The page leaves out pictures taken by a photographer on the ground, pictures from Kennedy Space Center (rockets and spacecraft being prepared), and pictures whose titles show a drawing, chart, test, or event.
-- **Webb's pictures come from ESA/Webb.** NASA's library holds mostly pictures of Webb being built, so the Webb choice shows the newest pictures from ESA/Webb instead. Only observations are shown, not artwork or charts.
+- **Pictures of space only.** NASA's library also holds pictures of hardware, events, and drawings. The page leaves out pictures taken by a photographer on the ground, pictures from Kennedy Space Center (rockets and spacecraft being prepared), and pictures whose titles show a drawing, chart, test, people, or an event.
+- **Pictures checked by hand.** `blocked_titles.txt` lists the titles of pictures that were checked and aren't of space, one per line. To leave out another one, add its exact title to the file.
+- **Webb's pictures come from ESA/Webb.** NASA's library holds mostly pictures of Webb being built, so the Webb choice shows the newest pictures from ESA/Webb instead. Only observations are shown, not artwork or charts. The Type and search words keep the Webb pictures whose title or description has those words.
 - **No one else's copyright.** NASA pictures marked with someone else's copyright are left out, and launch photos are shown only when their license allows it.
 
 ## Spaceflight times
@@ -103,6 +103,7 @@ uv run python -m pytest
 | `app.py` | The page: tabs, choices, and the calls to each source |
 | `telescopes.py` | The telescopes and cameras, the kinds of objects, and the search words |
 | `photos.py` | Turns NASA's replies into picture records, and leaves out pictures that aren't of space |
+| `blocked_titles.txt` | Titles of pictures checked by hand and left out |
 | `nasa_images.py` | Searches NASA's Image and Video Library |
 | `esa_webb.py` | Gets Webb's newest pictures and their credit lines from ESA/Webb |
 | `launch_library.py` | Gets planned and past launches from Launch Library 2 |

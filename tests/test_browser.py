@@ -14,14 +14,23 @@ import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Any
 
 import pytest
 import requests
 from conftest import read_bytes
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 PROJECT = Path(__file__).parent.parent
 STARTUP_SECONDS = 60
+# One window size everywhere, so the page lays out the same on every computer
+WINDOW = {"width": 1600, "height": 1000}
+
+
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args: dict[str, Any]) -> dict[str, Any]:
+    """Playwright's browser settings, with the fixed window size."""
+    return {**browser_context_args, "viewport": WINDOW}
 
 
 def free_port() -> int:
@@ -121,27 +130,35 @@ def app_url(stand_in: str) -> Iterator[str]:
         process.wait(timeout=30)
 
 
+def choose(page: Page, area: Locator, box: str, choice: str) -> None:
+    """Picks a choice in a drop-down box by typing it and pressing Enter, the
+    way a person can. This works however many choices fit on the screen."""
+    area.get_by_role("combobox", name=box).click()
+    page.keyboard.type(choice)
+    page.keyboard.press("Enter")
+
+
 def test_view_a_picture_large(page: Page, app_url: str) -> None:
     page.goto(app_url)
-    explore = page.get_by_role("tabpanel", name="Explore")
-    expect(explore.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
-    explore.get_by_role("button", name="View").first.click()
+    pictures = page.get_by_role("tabpanel", name="Space telescopes and cameras")
+    expect(pictures.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
+    pictures.get_by_role("button", name="View").first.click()
     expect(
-        explore.get_by_role("heading", name="Most Detailed Image of the Crab Nebula")
+        pictures.get_by_role("heading", name="Most Detailed Image of the Crab Nebula")
     ).to_be_visible()
-    expect(explore.get_by_text("See every size on NASA's site")).to_be_visible()
+    expect(pictures.get_by_text("See every size on NASA's site")).to_be_visible()
 
 
 def test_webb_pictures(page: Page, app_url: str) -> None:
     page.goto(app_url)
-    page.get_by_role("tab", name="Telescopes and cameras").click()
-    scopes = page.get_by_role("tabpanel", name="Telescopes and cameras")
-    scopes.get_by_role("combobox", name="Telescope or camera").click()
-    page.get_by_role("option", name="James Webb Space Telescope").click()
-    expect(scopes.get_by_text("Stars brewing in a nebulous cauldron")).to_be_visible(
-        timeout=30_000
-    )
-    expect(scopes.get_by_text("Credit: ESA/Webb, NASA & CSA").first).to_be_visible()
+    pictures = page.get_by_role("tabpanel", name="Space telescopes and cameras")
+    # Wait for the first search to finish, so the page is ready for clicks
+    expect(pictures.get_by_text("14 pictures found")).to_be_visible(timeout=30_000)
+    choose(page, pictures, "Telescope or camera", "James Webb Space Telescope")
+    expect(pictures.get_by_text("No Webb pictures match")).to_be_visible(timeout=30_000)
+    choose(page, pictures, "Type", "Any")
+    expect(pictures.get_by_text("Stars brewing in a nebulous cauldron")).to_be_visible()
+    expect(pictures.get_by_text("Credit: ESA/Webb, NASA & CSA").first).to_be_visible()
 
 
 def test_spaceflights(page: Page, app_url: str) -> None:

@@ -21,7 +21,7 @@ class Telescope:
     where: str
     sees: str
     source: str = NASA_LIBRARY
-    # Types whose pictures for this telescope are mostly not of space
+    # Types that bring up few or no space pictures for this telescope
     skip_types: tuple[str, ...] = ()
 
 
@@ -38,6 +38,7 @@ TELESCOPES = (
         "About 1.5 million km from Earth, launched in December 2021",
         "Infrared light",
         source=ESA_WEBB,
+        skip_types=("Planets", "Moons", "Comets"),
     ),
     Telescope(
         "Chandra X-ray Observatory",
@@ -57,32 +58,42 @@ TELESCOPES = (
         "Cassini",
         "Orbited Saturn from 2004 to 2017",
         "Visible and infrared light",
+        skip_types=("Nebulae", "Star clusters", "Comets"),
     ),
     Telescope(
         "Juno",
         "Juno",
         "Orbiting Jupiter since 2016",
         "Visible light (JunoCam)",
-        skip_types=("The Sun",),
+        skip_types=("Nebulae", "Galaxies", "Star clusters", "Comets", "The Sun"),
     ),
     Telescope(
         "New Horizons",
         "New Horizons",
         "Flew past Pluto in July 2015",
         "Visible and infrared light",
+        skip_types=("Nebulae", "Star clusters"),
     ),
     Telescope(
         "Curiosity rover",
         "Curiosity rover",
         "On Mars since August 2012",
         "Visible light",
+        skip_types=("Nebulae", "Galaxies", "Star clusters", "Comets"),
     ),
     Telescope(
         "Perseverance rover",
         "Perseverance rover",
         "On Mars since February 2021",
         "Visible light",
-        skip_types=("Planets",),
+        skip_types=(
+            "Planets",
+            "Nebulae",
+            "Galaxies",
+            "Star clusters",
+            "Comets",
+            "The Sun",
+        ),
     ),
 )
 
@@ -98,9 +109,6 @@ OBJECT_TYPES = {
 }
 
 ANY = "Any"
-
-# The telescopes NASA's library can be searched for
-NASA_TELESCOPES = tuple(t for t in TELESCOPES if t.source == NASA_LIBRARY)
 
 
 def telescope_named(name: str) -> Telescope | None:

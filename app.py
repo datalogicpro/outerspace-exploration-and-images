@@ -24,14 +24,12 @@ from launches import (
     parse_launches,
     split_launches,
 )
-from photos import Photo, page_count, parse_photos, total_hits
+from photos import Photo, matching, page_count, parse_photos, total_hits
 from telescopes import (
     ANY,
     ESA_WEBB,
-    NASA_TELESCOPES,
     OBJECT_TYPES,
     TELESCOPES,
-    Telescope,
     build_query,
     telescope_named,
     types_for,
@@ -47,6 +45,8 @@ LAUNCH_NOTE = (
     "happening today, or in the last hour, can show in either list. If you "
     "don't find one, check the other."
 )
+NO_SPACE_PICTURES = "No space pictures on this page. Try the next page."
+NO_WEBB_MATCH = "No Webb pictures match. Try other words, or set Type to Any."
 WEBB_NOTE = (
     "Webb's newest pictures of space, from ESA/Webb, newest first. "
     "Each picture shows its own credit line."
@@ -124,84 +124,105 @@ def show_photos(photos: list[Photo], key: str) -> None:
     photo_grid(photos, key)
 
 
+def turn_page(key: str, step: int) -> None:
+    """Moves the page number forward or back. Streamlit runs this when a
+    button is clicked, before it redraws the page, so both buttons show the
+    new page's state."""
+    st.session_state[key] = int(st.session_state.get(key, 1)) + step
+
+
+def page_picker(pages: int, key: str) -> int:
+    """Previous and Next buttons with the page number between them. Returns
+    the page to show."""
+    page = min(max(int(st.session_state.get(key, 1)), 1), pages)
+    st.session_state[key] = page
+    back, middle, forward = st.columns([1, 2, 1], vertical_alignment="center")
+    back.button(
+        "Previous page",
+        key=f"{key}_back",
+        disabled=page <= 1,
+        on_click=turn_page,
+        args=(key, -1),
+        width="stretch",
+    )
+    middle.markdown(f"**Page {page:,} of {pages:,}**")
+    forward.button(
+        "Next page",
+        key=f"{key}_next",
+        disabled=page >= pages,
+        on_click=turn_page,
+        args=(key, 1),
+        width="stretch",
+    )
+    return page
+
+
 def show_results(query: str, key: str) -> None:
     """The pictures for a search: a count, the chosen picture, and a grid.
 
-    The page box is new for each search, so a new search starts on page 1.
+    Each search keeps its own page number, so a new search starts on page 1.
     """
     first = load_photos(query, 1)
     hits = total_hits(first)
     if not hits:
         st.info("No pictures found. Try other words, or a different choice.")
         return
-    pages = page_count(hits, nasa_images.PAGE_SIZE)
-    page = int(
-        st.number_input(
-            f"Page (of {pages:,})",
-            min_value=1,
-            max_value=pages,
-            value=1,
-            key=f"{key}_page_{query}",
-        )
-    )
+    page = page_picker(page_count(hits, nasa_images.PAGE_SIZE), f"{key}_page_{query}")
     reply = first if page == 1 else load_photos(query, page)
     photos = parse_photos(reply)
     st.caption(f"{hits:,} pictures found. Click View to see one large.")
+    if not photos:
+        # Every picture on this page was left out as not a picture of space
+        st.info(NO_SPACE_PICTURES)
+        return
     show_photos(photos, key)
 
 
-def explore_tab() -> None:
-    words = st.text_input(
-        "Search for an object",
-        placeholder="Crab Nebula, Saturn, Andromeda...",
-        key="explore_words",
-    )
-    left, right = st.columns(2)
-    types = [ANY, *OBJECT_TYPES]
-    object_type = left.selectbox(
-        "Type", types, index=types.index(DEFAULT_TYPE), key="explore_type"
-    )
-    telescope = right.selectbox(
-        "Telescope or camera",
-        [ANY, *(t.name for t in NASA_TELESCOPES)],
-        key="explore_telescope",
-    )
-    query = build_query(words, object_type or ANY, telescope or ANY)
-    if not query:
-        st.info("Type a name, or pick a type or a telescope.")
-        return
-    show_results(query, key="explore")
-
-
-def webb_pictures() -> None:
-    photos = load_webb()
-    if not photos:
+def webb_pictures(query: str) -> None:
+    """Webb's newest pictures that match the search words and type."""
+    newest = load_webb()
+    if not newest:
         st.info("ESA/Webb has no pictures to show right now. Try again later.")
+        return
+    photos = matching(newest, query)
+    if not photos:
+        st.info(NO_WEBB_MATCH)
         return
     st.caption(f"{WEBB_NOTE} Click View to see one large.")
     show_photos(photos, key="webb")
 
 
-def nasa_pictures(telescope: Telescope) -> None:
-    """The telescope's pictures in NASA's library, narrowed by type."""
+def picture_tab() -> None:
+    left, right = st.columns(2)
+    name = left.selectbox(
+        "Telescope or camera",
+        [ANY, *(t.name for t in TELESCOPES)],
+        key="explore_telescope",
+    )
+    telescope = telescope_named(name or ANY)
+    types = types_for(telescope) if telescope else [ANY, *OBJECT_TYPES]
     # Each telescope keeps its own Type box, since their Type lists differ
-    object_type = st.selectbox(
-        "Type", types_for(telescope), key=f"scope_type_{telescope.name}"
+    default = types.index(DEFAULT_TYPE) if DEFAULT_TYPE in types else 0
+    object_type = right.selectbox(
+        "Type", types, index=default, key=f"explore_type_{name}"
     )
-    query = build_query("", object_type or ANY, telescope.name)
-    show_results(query, key="scope")
-
-
-def telescope_tab() -> None:
-    name = st.selectbox(
-        "Telescope or camera", [t.name for t in TELESCOPES], key="scope_name"
+    words = st.text_input(
+        "Search for an object",
+        placeholder="Crab Nebula, Saturn, Andromeda...",
+        key="explore_words",
     )
-    telescope = telescope_named(name or TELESCOPES[0].name) or TELESCOPES[0]
-    st.markdown(f"**Where:** {telescope.where}  \n**What it sees:** {telescope.sees}")
-    if telescope.source == ESA_WEBB:
-        webb_pictures()
-    else:
-        nasa_pictures(telescope)
+    if telescope is not None:
+        st.markdown(
+            f"**Where:** {telescope.where}  \n**What it sees:** {telescope.sees}"
+        )
+    if telescope is not None and telescope.source == ESA_WEBB:
+        webb_pictures(build_query(words, object_type or ANY, ANY))
+        return
+    query = build_query(words, object_type or ANY, name or ANY)
+    if not query:
+        st.info("Type a name, or pick a type or a telescope.")
+        return
+    show_results(query, key="explore")
 
 
 def show_launch(launch: Launch) -> None:
@@ -258,14 +279,8 @@ def main() -> None:
         "ESA/Webb, by object and by the telescope or camera that took them, "
         "plus past and planned spaceflights."
     )
-    explore, scopes, flights = st.tabs(
-        ["Explore", "Telescopes and cameras", "Spaceflights"]
-    )
-    for tab, show in [
-        (explore, explore_tab),
-        (scopes, telescope_tab),
-        (flights, spaceflight_tab),
-    ]:
+    pictures, flights = st.tabs(["Space telescopes and cameras", "Spaceflights"])
+    for tab, show in [(pictures, picture_tab), (flights, spaceflight_tab)]:
         with tab:
             try:
                 show()

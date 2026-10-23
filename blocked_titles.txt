@@ -1,0 +1,68 @@
+# NASA pictures to leave out, by exact title, one per line.
+# These were checked by hand and aren't pictures of space: hardware,
+# mission patches, people, events, and charts. Capital letters don't matter.
+# Lines that start with # are notes, and blank lines are skipped.
+
+Abigail Allwood Doing Fieldwork in Greenland
+Abigail Allwood in Greenland
+Annotated Version of Perseverance Selfie With Sample Tubes
+Armstrong and Rock Box
+Being "Secondary" is Important for a Webb Telescope Mirror
+Cassini Spacecraft in a JPL Assembly Room
+Cheering for Perseverance Landing
+Chris Evans Visits JPL, Perseverance Model
+Engineers Install Near Infrared Camera into the Heart of Webb Telescope
+Excitement and Suspense on Landing Day
+EXP 40_A_patch
+Exp 41 Patch - Final Approved
+EXP_24_patch_names_OL
+Goddard scientist Jennifer Eigenbrode
+Heavy-Duty OPTIMISM
+History of Hubble Space Telescope (HST)
+How Perseverance's PIXL Gets Close to a Rock Target
+Improved OPTIMISM
+Ingenuity Fist Bump
+Ingenuity's Team Reacts to Data Showing Helicopter Completed Its Second Flight
+Ingenuity's Team Reacts to Data Showing It Completed Its First Flight
+Ingenuity's Team Waits for Data on Helicopter's First Flight
+iss024-s-001
+iss031-s-001
+iss035-s-001
+Key Science Instrument Installed into Webb Structure
+Mars Perseverance Team, Pre-landing
+Milky J “Hubble Gotchu" of Late Night with Jimmy Fallon visits Goddard
+NASA's Webb Sunshield Gives an "Open Wide" for Inspection
+OPTIMISM Sticks the Landing
+Perseverance Twin Drives Into the Mars Yard
+Perseverance's Three Forks Sample Depot Selfie
+PIA24267
+Postflight - Apollo XII - MSC
+Preparation for Analytical Measurements on Mars
+Preparing Pioneer 4 for the Moon
+Project Manager for NASA's Mars Ascent Vehicle
+Sample Analysis at Mars (SAM) Media Day
+Setting Guardrails for Mars Lander Testing
+Space Science
+Space Shuttle Projects
+SPHEREx: Part of a Lineage of NASA Space Telescopes
+Spitzer Project Manager Declares End of Mission
+STS-109 insignia
+STS-31 ATLANTIS ORBITER VEHICLE (OV) 104 - CREW INSIGNIA
+STS-34 ATLANTIS - ORBITER VEHICLE (OV)-104 - CREW INSIGNIA
+STS-48 official crew insignia
+STS-61 Crew Insignia
+STS-82 crew portrait with "More Power" banner and Hubble shirts
+STS-82 Discovery, Orbiter Vehicle (OV-103), crew insignia
+sts093-s-001
+sts099-s-001
+STS103-S-001
+STS125-S-001
+STS126-S-001
+Testing a Prototype Mars Lander
+Testing a Roubion-Like Rock
+Testing a Sample Drop in the Mars Yard
+Testing Hardware for Potential Future Landing on Europa
+The Secrets of NASA's Webb Telescope’s "Deployable Tower Assembly"
+The Sound of MOXIE at Work on Mars
+The Webb Telescope's Actuators: Curving Mirrors in Space
+Yes, the James Webb Space Telescope Mirrors 'Can'
