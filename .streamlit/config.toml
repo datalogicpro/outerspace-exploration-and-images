@@ -1,0 +1,7 @@
+[server]
+# The page has no uploads, so the upload limit is kept small
+maxUploadSize = 1
+
+[theme]
+# The same dark blue as the other portfolio pages
+primaryColor = "#1F4E78"

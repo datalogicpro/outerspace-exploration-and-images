@@ -1,0 +1,35 @@
+name: Live source check
+
+# Calls the real NASA, Launch Library, and ESA/Webb sources once a day to
+# catch changes to what they send. It can also be run by hand from the
+# Actions tab.
+on:
+  schedule:
+    - cron: "41 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.0"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Check the live sources
+        run: uv run pytest -m live --no-cov
