@@ -1,10 +1,12 @@
 [project]
 name = "outerspace-exploration-and-images"
-version = "0.1.0"
-description = "Dashboard of NASA space pictures by object and telescope, plus past and planned spaceflights."
+version = "1.0.0"
+description = "Dashboard of space pictures from NASA and ESA/Webb by object and telescope, plus past and planned spaceflights."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "defusedxml>=0.7.1",
     "requests>=2.34.2",
     "streamlit>=1.66.1",
 ]
@@ -19,17 +21,18 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-playwright>=0.10.0",
     "ruff>=0.17.1",
+    "types-defusedxml>=0.7.0.20260504",
     "types-requests>=2.33.0.20261006",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
-# The live API check is left out here; GitHub runs it once a day.
+# The live checks are left out here; GitHub runs them once a day.
 # The browser test uses the Chrome that's already installed.
 addopts = "--cov --cov-report=term-missing -m 'not live' --browser-channel chrome"
 markers = [
-    "live: calls the real NASA and Launch Library APIs (run with: -m live --no-cov)",
+    "live: calls the real NASA, Launch Library, and ESA/Webb sources (run with: -m live --no-cov)",
 ]
 filterwarnings = ["error"]
 
