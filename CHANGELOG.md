@@ -12,7 +12,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The Type list follows the telescope, leaving out types that bring up few or no space pictures for it.
 - Webb's pictures can be narrowed by Type and search words.
 - Previous page and Next page buttons replace the typed page box.
-- Bigger text and boxes across the page.
 
 ### Fixed
 

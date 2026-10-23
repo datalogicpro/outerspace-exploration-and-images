@@ -1,9 +1,7 @@
-[server]
-# The page has no uploads, so the upload limit is kept small
-maxUploadSize = 1
+   [server]
+   # The page has no uploads, so the upload limit is kept small
+   maxUploadSize = 1
 
-[theme]
-# The same dark blue as the other portfolio pages
-primaryColor = "#1F4E78"
-# Much bigger text and boxes than Streamlit's 16, so the page is easy to read
-baseFontSize = 28
+   [theme]
+   # The same dark blue as the other portfolio pages
+   primaryColor = "#1F4E78"
